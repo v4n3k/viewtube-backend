@@ -54,7 +54,21 @@ class VideoController {
 		});
 	}
 
+	async getVideoById(req, res) {
+		const { id } = req.params;
 
+		if (!id) {
+			return res.status(400).json({ error: 'Video ID is required' });
+		}
+
+		const videoResult = await db.query(
+			'SELECT * FROM videos WHERE id = $1',
+			[id]
+		);
+		const video = videoResult.rows[0];
+
+		res.json(video);
+	}
 }
 
 export default new VideoController();
