@@ -18,6 +18,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeDatabase } from './db.js';
 import { router as videoRouter } from './routes/video.routes.js';
+import { router as commentRouter } from './routes/comment.routes.js';
 import { env } from './utils/utils.js';
 
 dotenvConfig();
@@ -68,6 +69,7 @@ const startServer = async () => {
 		}));
 
 		app.use('/api', videoRouter);
+		app.use('/api', commentRouter);
 
 		app.listen(PORT, () => {
 			console.log(`Server is running on port ${PORT} in ${env('NODE_ENV')} mode`);

@@ -8,6 +8,8 @@ class VideoController {
 		const parsedLimit = parseInt(limit, 10);
 
 		if (isNaN(parsedPage) || isNaN(parsedLimit) || parsedPage <= 0 || parsedLimit <= 0) {
+			console.log('invalid req query');
+
 			return res.status(400).json({ error: 'Page and limit must be positive numbers' });
 		}
 
