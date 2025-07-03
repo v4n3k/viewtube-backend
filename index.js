@@ -17,6 +17,7 @@ import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeDatabase } from './db.js';
+import { router as videoRouter } from './routes/video.routes.js';
 import { env } from './utils/utils.js';
 
 dotenvConfig();
@@ -65,6 +66,8 @@ const startServer = async () => {
 			preflightContinue: false,
 			optionsSuccessStatus: 204
 		}));
+
+		app.use('/api', videoRouter);
 
 		app.listen(PORT, () => {
 			console.log(`Server is running on port ${PORT} in ${env('NODE_ENV')} mode`);
