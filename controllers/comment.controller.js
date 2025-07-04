@@ -1,4 +1,3 @@
-
 class CommentController {
 	async getCommentsByVideoId(req, res) {
 		const { videoId } = req.params;
