@@ -7,5 +7,3 @@ export const router = express.Router();
 router.get('/subscriptions/:userId',
 	handleError(subscriptionController.getSubscriptionsByUserId)
 );
-
-

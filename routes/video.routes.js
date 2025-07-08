@@ -6,4 +6,3 @@ export const router = express.Router();
 
 router.get('/videos', handleError(VideoController.getRecommendedVideos));
 router.get('/videos/:id', handleError(VideoController.getVideoById));
-
