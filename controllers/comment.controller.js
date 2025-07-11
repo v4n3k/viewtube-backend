@@ -94,15 +94,13 @@ class CommentController {
 			};
 		});
 
-		setTimeout(() =>
-			res.json({
-				comments: comments,
-				currentPage: parsedPage,
-				totalPages: totalPages,
-				totalItems: totalItems,
-			}),
-			1500
-		);
+
+		res.json({
+			comments: comments,
+			currentPage: parsedPage,
+			totalPages: totalPages,
+			totalItems: totalItems,
+		});
 	}
 
 	async getRepliesByCommentId(req, res) {
@@ -182,7 +180,7 @@ class CommentController {
 			[videoId, text, channelId, parentCommentId]
 		);
 
-		setTimeout(() => res.status(201).json(comment), 1500);
+		res.status(201).json(comment);
 	}
 }
 

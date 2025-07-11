@@ -71,6 +71,88 @@ class VideoController {
 
 		res.json(video);
 	}
+
+	async getVideosByChannelId(req, res) {
+		const { channelId } = req.params;
+
+		if (!channelId) {
+			return res.status(400).json({ error: 'Channel ID is required' });
+		}
+
+		const videosResult = await db.query(
+			'SELECT * FROM videos WHERE "channelId" = $1',
+			[channelId]
+		);
+		const videos = videosResult.rows;
+
+		res.json(videos);
+	}
+
+	async getWatchLaterVideosByChannelId(req, res) {
+		const { channelId } = req.params;
+
+		if (!channelId) {
+			return res.status(400).json({ error: 'Channel ID is required' });
+		}
+
+		const watchLaterVideosResult = await db.query(
+			'SELECT * FROM "watchLater" WHERE "channelId" = $1',
+			[channelId]
+		);
+		const watchLaterVideos = watchLaterVideosResult.rows;
+
+		res.json(watchLaterVideos);
+	}
+
+	async getHistoryVideosByChannelId(req, res) {
+		const { channelId } = req.params;
+
+		if (!channelId) {
+			return res.status(400).json({ error: 'Channel ID is required' });
+		}
+
+		const historyVideosResult = await db.query(
+			'SELECT * FROM "watchHistory." WHERE "channelId" = $1',
+			[channelId]
+		);
+		const historyVideos = historyVideosResult.rows;
+
+		res.json(historyVideos);
+	}
+
+	async getLikedVideosByChannelId(req, res) {
+		const { channelId } = req.params;
+
+		if (!channelId) {
+			return res.status(400).json({ error: 'Channel ID is required' });
+		}
+
+		const likedVideosResult = await db.query(
+			`SELECT *FROM "videoReactions"
+			 	WHERE "channelId" = $1 AND "reactionType" = \'like\'`,
+			[channelId]
+		);
+		const likedVideos = likedVideosResult.rows;
+
+		res.json(likedVideos);
+	}
+
+	async getSubscribedVideosByChannelIds(req, res) {
+		const { channelIds } = req.params;
+
+		if (!channelIds.length) {
+			return res.status(400).json({ error: 'Channel IDs are required' });
+		}
+
+		const subscribedVideosResult = await db.query(
+			`SELECT * FROM "subscriptions"
+			 	WHERE "channelId" = ANY($1)`,
+			[channelIds]
+		);
+		const subscribedVideos = subscribedVideosResult.rows;
+
+		res.json(subscribedVideos);
+	}
 }
 
 export default new VideoController();
