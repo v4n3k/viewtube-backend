@@ -153,6 +153,114 @@ class VideoController {
 
 		res.json(subscribedVideos);
 	}
+
+	async likeVideo(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!channelId || !videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const reactionResult = await db.query(
+			`INSERT INTO "videoReactions" ("channelId", "videoId", "reactionType")
+				VALUES ($1, $2, 'like')
+				ON CONFLICT ("channelId", "videoId") DO UPDATE SET "reactionType" = 'like'
+			RETURNING *`,
+			[channelId, videoId]
+		);
+		const reaction = reactionResult.rows[0];
+
+		res.json(reaction);
+	}
+
+	async unlikeVideo(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!channelId || !videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const reactionResult = await db.query(
+			`DELETE FROM "videoReactions" 
+				WHERE "channelId" = $1 AND "videoId" = $2
+			RETURNING *`,
+			[channelId, videoId]
+		);
+
+		res.json({ message: 'Video unliked successfully' });
+	}
+
+	async dislikeVideo(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!channelId || !videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const reactionResult = await db.query(
+			`INSERT INTO "videoReactions" ("channelId", "videoId", "reactionType")
+				VALUES ($1, $2, 'dislike')
+				ON CONFLICT ("channelId", "videoId") DO UPDATE SET "reactionType" = 'dislike'
+			RETURNING *`,
+			[channelId, videoId]
+		);
+		const reaction = reactionResult.rows[0];
+
+		res.json(reaction);
+	}
+
+	async undislikeVideo(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!channelId || !videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const reactionResult = await db.query(
+			`DELETE FROM "videoReactions" 
+				WHERE "channelId" = $1 AND "videoId" = $2
+			RETURNING *`,
+			[channelId, videoId]
+		);
+
+		res.json({ message: 'Video undisliked successfully' });
+	}
+
+	async addToWatchLater(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!channelId || !videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const watchLaterVideoResult = await db.query(
+			`INSERT INTO "watchLater" ("channelId", "videoId")
+				VALUES ($1, $2)
+				ON CONFLICT ("channelId", "videoId") DO NOTHING
+			RETURNING *`,
+			[channelId, videoId]
+		);
+		const watchLaterVideo = watchLaterVideoResult.rows[0];
+
+		res.json(watchLaterVideo);
+	}
+
+	async deleteFromWatchLater(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!channelId || !videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const watchLaterVideoResult = await db.query(
+			`DELETE FROM "watchLater" 
+				WHERE "channelId" = $1 AND "videoId" = $2
+			RETURNING *`,
+			[channelId, videoId]
+		);
+
+		res.json({ message: 'Video removed from watch later successfully' });
+	}
 }
 
 export default new VideoController();
