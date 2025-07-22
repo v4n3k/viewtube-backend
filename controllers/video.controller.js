@@ -57,19 +57,80 @@ class VideoController {
 	}
 
 	async getVideoById(req, res) {
-		const { id } = req.params;
+		const { videoId, channelId } = req.params;
 
-		if (!id) {
-			return res.status(400).json({ error: 'Video ID is required' });
+		if (!videoId || !channelId) {
+			return res.status(400).json({ error: 'Video ID and Channel ID are required' });
 		}
 
-		const videoResult = await db.query(
-			'SELECT * FROM videos WHERE id = $1',
-			[id]
-		);
-		const video = videoResult.rows[0];
+		try {
+			const videoResult = await db.query(
+				`
+      SELECT
+        v.*,
+        c.id AS "channelId",
+        c.name AS "channelName",
+        c."avatarUrl" AS "channelAvatarUrl",
+        (SELECT COUNT(*) FROM subscriptions WHERE "subscribedToChannelId" = c.id) AS "subscriptionsCount"
+      FROM videos v
+      JOIN channels c ON v."channelId" = c.id
+      WHERE v.id = $1
+      `,
+				[videoId]
+			);
 
-		res.json(video);
+			const video = videoResult.rows[0];
+
+			if (!video) {
+				return res.status(404).json({ error: 'Video not found' });
+			}
+
+			let isLiked = false;
+			let isDisliked = false;
+			let isSaved = false;
+
+			const reactionsResult = await db.query(
+				`
+      SELECT "reactionType" FROM "videoReactions"
+      WHERE "channelId" = $1 AND "videoId" = $2
+      `,
+				[channelId, videoId]
+			);
+
+			const reactions = reactionsResult.rows;
+
+			if (reactions.length > 0) {
+				isLiked = reactions.some(r => r.reactionType === 'like');
+				isDisliked = reactions.some(r => r.reactionType === 'dislike');
+			}
+
+			const savedResult = await db.query(
+				`
+      SELECT 1 FROM "watchLater"
+      WHERE "channelId" = $1 AND "videoId" = $2
+      `,
+				[channelId, videoId]
+			);
+			isSaved = savedResult.rows.length > 0;
+
+			const response = {
+				...video,
+				channel: {
+					id: video.channelId,
+					name: video.channelName,
+					avatarUrl: video.channelAvatarUrl,
+					subscriptionsCount: parseInt(video.subscriptionsCount, 10),
+				},
+				isLiked,
+				isDisliked,
+				isSaved,
+			};
+
+			res.json(response);
+		} catch (error) {
+			console.error('Error fetching video:', error);
+			res.status(500).json({ error: 'Internal Server Error' });
+		}
 	}
 
 	async getVideosByChannelId(req, res) {

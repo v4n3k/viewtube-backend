@@ -41,23 +41,30 @@ CREATE TABLE IF NOT EXISTS "comments" (
 );
 
 CREATE TABLE IF NOT EXISTS "videoReactions" (
-  "userId" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "channelId" INTEGER NOT NULL REFERENCES "channels"("id") ON DELETE CASCADE,
   "videoId" INTEGER NOT NULL REFERENCES "videos"("id") ON DELETE CASCADE,
   "reactionType" VARCHAR(10) NOT NULL CHECK ("reactionType" IN ('like', 'dislike')),
   "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("userId", "videoId")
+  PRIMARY KEY ("channelId", "videoId")
 );
 
 CREATE TABLE IF NOT EXISTS "subscriptions" (
-  "userId" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
-  "channelId" INTEGER NOT NULL REFERENCES "channels"("id") ON DELETE CASCADE,
+  "subscriberChannelId" INTEGER NOT NULL REFERENCES "channels"("id") ON DELETE CASCADE, 
+  "subscribedToChannelId" INTEGER NOT NULL REFERENCES "channels"("id") ON DELETE CASCADE,
   "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("subscriberId", "channelId")
+  PRIMARY KEY ("subscriberChannelId", "subscribedToChannelId")
 );
 
 CREATE TABLE IF NOT EXISTS "watchHistory" (
-  "userId" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "channelId" INTEGER NOT NULL REFERENCES "channels"("id") ON DELETE CASCADE,
   "videoId" INTEGER NOT NULL REFERENCES "videos"("id") ON DELETE CASCADE,
   "watchedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("userId", "videoId", "watchedAt") 
+  PRIMARY KEY ("channelId", "videoId", "watchedAt")
+);
+
+CREATE TABLE IF NOT EXISTS "watchLater" (
+  "channelId" INTEGER NOT NULL REFERENCES "channels"("id") ON DELETE CASCADE,
+  "videoId" INTEGER NOT NULL REFERENCES "videos"("id") ON DELETE CASCADE,
+  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY ("channelId", "videoId")
 );
