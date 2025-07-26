@@ -151,19 +151,74 @@ class VideoController {
 
 	async getWatchLaterVideosByChannelId(req, res) {
 		const { channelId } = req.params;
+		const { page, limit } = req.query;
+
+		const parsedPage = parseInt(page, 10);
+		const parsedLimit = parseInt(limit, 10);
+
+		if (isNaN(parsedPage) || isNaN(parsedLimit) || parsedPage <= 0 || parsedLimit <= 0) {
+			return res.status(400).json({ error: 'Page and limit must be positive numbers' });
+		}
 
 		if (!channelId) {
 			return res.status(400).json({ error: 'Channel ID is required' });
 		}
 
-		const watchLaterVideosResult = await db.query(
-			'SELECT * FROM "watchLater" WHERE "channelId" = $1',
+		const offset = (parsedPage - 1) * parsedLimit;
+
+		const countResult = await db.query(
+			`SELECT COUNT(*) FROM "watchLater" WHERE "channelId" = $1`,
 			[channelId]
 		);
-		const watchLaterVideos = watchLaterVideosResult.rows;
 
-		res.json(watchLaterVideos);
+		const totalItems = parseInt(countResult.rows[0].count, 10);
+		const totalPages = Math.ceil(totalItems / parsedLimit);
+
+		if (totalItems === 0 || (parsedPage > totalPages && totalPages > 0)) {
+			return res.json({
+				savedVideos: [],
+				currentPage: totalItems === 0 ? 1 : totalPages,
+				totalPages: totalItems === 0 ? 0 : totalPages,
+				totalItems: totalItems,
+			});
+		}
+
+		const savedVideosResult = await db.query(
+			`SELECT
+					v.id,
+	        v.title,
+	        v.description,
+	        v."previewUrl",
+	        v.duration,
+	        v."views",
+	        v."createdAt",
+	        v.visibility,
+	        c.id AS "channelId"
+	        c.name AS "channelName",
+	        c."avatarUrl" AS "channelAvatar"
+	    FROM
+	        "watchLater" wl
+	    JOIN
+	        videos v ON wl."videoId" = v.id
+	    JOIN
+	        channels c ON v."channelId" = c.id
+	    WHERE
+	        wl."channelId" = $1
+	    ORDER BY
+	        wl."createdAt" DESC   
+								LIMIT $2 OFFSET $3`,
+			[channelId, parsedLimit, offset]
+		);
+		const savedVideos = savedVideosResult.rows;
+
+		res.json({
+			savedVideos,
+			currentPage: parsedPage,
+			totalPages,
+			totalItems,
+		});
 	}
+
 
 	async getHistoryVideosByChannelId(req, res) {
 		const { channelId } = req.params;
@@ -183,19 +238,72 @@ class VideoController {
 
 	async getLikedVideosByChannelId(req, res) {
 		const { channelId } = req.params;
+		const { page, limit } = req.query;
+
+		const parsedPage = parseInt(page, 10);
+		const parsedLimit = parseInt(limit, 10);
+
+		if (isNaN(parsedPage) || isNaN(parsedLimit) || parsedPage <= 0 || parsedLimit <= 0) {
+			return res.status(400).json({ error: 'Page and limit must be positive numbers' });
+		}
 
 		if (!channelId) {
 			return res.status(400).json({ error: 'Channel ID is required' });
 		}
 
-		const likedVideosResult = await db.query(
-			`SELECT *FROM "videoReactions"
-			 	WHERE "channelId" = $1 AND "reactionType" = \'like\'`,
+		const offset = (parsedPage - 1) * parsedLimit;
+
+		const countResult = await db.query(
+			`SELECT COUNT(*) FROM "videoReactions" WHERE "channelId" = $1 AND "reactionType" = 'like'`,
 			[channelId]
+		);
+
+		const totalItems = parseInt(countResult.rows[0].count, 10);
+		const totalPages = Math.ceil(totalItems / parsedLimit);
+
+		if (totalItems === 0 || (parsedPage > totalPages && totalPages > 0)) {
+			return res.json({
+				likedVideos: [],
+				currentPage: totalItems === 0 ? 1 : totalPages,
+				totalPages: totalItems === 0 ? 0 : totalPages,
+				totalItems: totalItems,
+			});
+		}
+
+		const likedVideosResult = await db.query(
+			`SELECT
+     v.id,
+         v.title,
+         v.description,
+         v."previewUrl",
+         v.duration,
+         v."views",
+         v."createdAt",
+         v.visibility,
+         c.id AS "channelId", -- ID канала, которому принадлежит видео
+         c.name AS "channelName",
+         c."avatarUrl" AS "channelAvatar"
+     FROM
+         "videoReactions" vr
+     JOIN
+         videos v ON vr."videoId" = v.id
+     JOIN
+         channels c ON v."channelId" = c.id
+     WHERE
+         vr."channelId" = $1 AND vr."reactionType" = 'like'
+     ORDER BY
+         vr."createdAt" DESC -- Сортируем по дате лайка, чтобы видеть последние лайки первыми
+        LIMIT $2 OFFSET $3`,
+			[channelId, parsedLimit, offset]
 		);
 		const likedVideos = likedVideosResult.rows;
 
-		res.json(likedVideos);
+		res.json({
+			likedVideos,
+			currentPage: parsedPage,
+			totalPages,
+			totalItems,
+		});
 	}
 
 	async getSubscribedVideosByChannelIds(req, res) {
