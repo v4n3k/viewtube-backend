@@ -63,9 +63,8 @@ class VideoController {
 			return res.status(400).json({ error: 'Video ID and Channel ID are required' });
 		}
 
-		try {
-			const videoResult = await db.query(
-				`
+		const videoResult = await db.query(
+			`
       SELECT
         v.*,
         c.id AS "channelId",
@@ -76,61 +75,68 @@ class VideoController {
       JOIN channels c ON v."channelId" = c.id
       WHERE v.id = $1
       `,
-				[videoId]
-			);
+			[videoId]
+		);
 
-			const video = videoResult.rows[0];
+		const video = videoResult.rows[0];
 
-			if (!video) {
-				return res.status(404).json({ error: 'Video not found' });
-			}
+		if (!video) {
+			return res.status(404).json({ error: 'Video not found' });
+		}
 
-			let isLiked = false;
-			let isDisliked = false;
-			let isSaved = false;
+		let isLiked = false;
+		let isDisliked = false;
+		let isSaved = false;
+		let isSubscribed = false;
 
-			const reactionsResult = await db.query(
-				`
+		const reactionsResult = await db.query(
+			`
       SELECT "reactionType" FROM "videoReactions"
       WHERE "channelId" = $1 AND "videoId" = $2
       `,
-				[channelId, videoId]
-			);
+			[channelId, videoId]
+		);
 
-			const reactions = reactionsResult.rows;
+		const reactions = reactionsResult.rows;
 
-			if (reactions.length > 0) {
-				isLiked = reactions.some(r => r.reactionType === 'like');
-				isDisliked = reactions.some(r => r.reactionType === 'dislike');
-			}
+		if (reactions.length > 0) {
+			isLiked = reactions.some(r => r.reactionType === 'like');
+			isDisliked = reactions.some(r => r.reactionType === 'dislike');
+		}
 
-			const savedResult = await db.query(
-				`
+		const savedResult = await db.query(
+			`
       SELECT 1 FROM "watchLater"
       WHERE "channelId" = $1 AND "videoId" = $2
       `,
-				[channelId, videoId]
-			);
-			isSaved = savedResult.rows.length > 0;
+			[channelId, videoId]
+		);
+		isSaved = savedResult.rows.length > 0;
 
-			const response = {
-				...video,
-				channel: {
-					id: video.channelId,
-					name: video.channelName,
-					avatarUrl: video.channelAvatarUrl,
-					subscriptionsCount: parseInt(video.subscriptionsCount, 10),
-				},
-				isLiked,
-				isDisliked,
-				isSaved,
-			};
+		const subscriptionsResult = await db.query(
+			`
+			SELECT 1 FROM "subscriptions"
+			WHERE "subscriberChannelId" = $1 AND "subscribedToChannelId" = $2
+			`,
+			[channelId, video.channelId]
+		);
+		isSubscribed = subscriptionsResult.rows.length > 0;
 
-			res.json(response);
-		} catch (error) {
-			console.error('Error fetching video:', error);
-			res.status(500).json({ error: 'Internal Server Error' });
-		}
+		const response = {
+			...video,
+			channel: {
+				id: video.channelId,
+				name: video.channelName,
+				avatarUrl: video.channelAvatarUrl,
+				subscriptionsCount: parseInt(video.subscriptionsCount, 10),
+				isSubscribed,
+			},
+			isLiked,
+			isDisliked,
+			isSaved,
+		};
+
+		res.json(response);
 	}
 
 	async getVideosByChannelId(req, res) {

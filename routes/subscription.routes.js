@@ -4,6 +4,5 @@ import { handleError } from '../utils/utils.js';
 
 export const router = express.Router();
 
-router.get('/subscriptions/:userId',
-	handleError(subscriptionController.getSubscriptionsByUserId)
-);
+router.post('/subscriptions', handleError(subscriptionController.createSubscription));
+router.delete('/subscriptions', handleError(subscriptionController.deleteSubscription));
