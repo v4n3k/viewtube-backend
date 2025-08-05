@@ -8,8 +8,6 @@ class VideoController {
 		const parsedLimit = parseInt(limit, 10);
 
 		if (isNaN(parsedPage) || isNaN(parsedLimit) || parsedPage <= 0 || parsedLimit <= 0) {
-			console.log('invalid req query');
-
 			return res.status(400).json({ error: 'Page and limit must be positive numbers' });
 		}
 
@@ -286,7 +284,7 @@ class VideoController {
          v."views",
          v."createdAt",
          v.visibility,
-         c.id AS "channelId", -- ID канала, которому принадлежит видео
+         c.id AS "channelId",
          c.name AS "channelName",
          c."avatarUrl" AS "channelAvatar"
      FROM
@@ -298,7 +296,7 @@ class VideoController {
      WHERE
          vr."channelId" = $1 AND vr."reactionType" = 'like'
      ORDER BY
-         vr."createdAt" DESC -- Сортируем по дате лайка, чтобы видеть последние лайки первыми
+         vr."createdAt" DESC
         LIMIT $2 OFFSET $3`,
 			[channelId, parsedLimit, offset]
 		);

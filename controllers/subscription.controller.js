@@ -27,8 +27,6 @@ class SubscriptionController {
 	async deleteSubscription(req, res) {
 		const { subscriberChannelId, unsubscribeFromChannelId } = req.body;
 
-		console.log(req.body);
-
 		if (!subscriberChannelId || !unsubscribeFromChannelId) {
 			return res.status(400).json({ error: 'Missing required fields' });
 		}
