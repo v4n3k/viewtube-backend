@@ -17,6 +17,7 @@ import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeDatabase } from './db.js';
+import { router as authRouter } from './routes/auth.routes.js';
 import { router as commentRouter } from './routes/comment.routes.js';
 import { router as subscriptionRouter } from './routes/subscription.routes.js';
 import { router as videoRouter } from './routes/video.routes.js';
@@ -69,6 +70,7 @@ const startServer = async () => {
 			optionsSuccessStatus: 204
 		}));
 
+		app.use('/api', authRouter);
 		app.use('/api', videoRouter);
 		app.use('/api', commentRouter);
 		app.use('/api', subscriptionRouter);
