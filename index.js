@@ -18,6 +18,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeDatabase } from './db.js';
 import { router as authRouter } from './routes/auth.routes.js';
+import { router as channelRouter } from './routes/channel.routes.js';
 import { router as commentRouter } from './routes/comment.routes.js';
 import { router as subscriptionRouter } from './routes/subscription.routes.js';
 import { router as videoRouter } from './routes/video.routes.js';
@@ -36,7 +37,6 @@ const app = express();
 const startServer = async () => {
 	try {
 		console.log('Starting server initialization...');
-
 
 		console.log('Initializing database...');
 		await initializeDatabase();
@@ -72,6 +72,7 @@ const startServer = async () => {
 
 		app.use('/api', authRouter);
 		app.use('/api', videoRouter);
+		app.use('/api', channelRouter);
 		app.use('/api', commentRouter);
 		app.use('/api', subscriptionRouter);
 
