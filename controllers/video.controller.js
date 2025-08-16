@@ -68,7 +68,7 @@ class VideoController {
         c.id AS "channelId",
         c.name AS "channelName",
         c."avatarUrl" AS "channelAvatarUrl",
-        (SELECT COUNT(*) FROM subscriptions WHERE "subscribedToChannelId" = c.id) AS "subscriptionsCount"
+        (SELECT COUNT(*) FROM subscriptions WHERE "subscribedToChannelId" = c.id) AS "subscribersCount"
       FROM videos v
       JOIN channels c ON v."channelId" = c.id
       WHERE v.id = $1
@@ -126,7 +126,7 @@ class VideoController {
 				id: video.channelId,
 				name: video.channelName,
 				avatarUrl: video.channelAvatarUrl,
-				subscriptionsCount: parseInt(video.subscriptionsCount, 10),
+				subscribersCount: parseInt(video.subscribersCount, 10),
 				isSubscribed,
 			},
 			isLiked,
@@ -197,7 +197,7 @@ class VideoController {
 	        v."views",
 	        v."createdAt",
 	        v.visibility,
-	        c.id AS "channelId"
+	        c.id AS "channelId",
 	        c.name AS "channelName",
 	        c."avatarUrl" AS "channelAvatar"
 	    FROM

@@ -40,7 +40,6 @@ class AuthController {
 		);
 
 		res.json({ message: 'User created successfully' });
-
 	}
 
 	async signIn(req, res) {

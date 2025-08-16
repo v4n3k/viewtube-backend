@@ -37,36 +37,30 @@ class CommentController {
 
 		const commentsResult = await db.query(
 			`
-        SELECT
-            c.id AS "commentId",
-            c."videoId" AS "commentVideoId",
-            c.text AS "commentText",
-            c."createdAt" AS "commentCreatedAt",
-            c."parentCommentId" AS "parentCommentId",
-            ch.id AS "channelId",
-            ch.name AS "channelName",
-            ch.description AS "channelDescription",
-            ch."avatarUrl" AS "channelAvatarUrl",
-            u_commenter.id AS "commenterUserId",
-            u_commenter.username AS "commenterUsername",
-            u_commenter."avatarUrl" AS "commenterAvatarUrl",
-            COUNT(r.id) AS "repliesCount"
-        FROM
-            comments c
-        JOIN
-            channels ch ON c."channelId" = ch.id
-        JOIN
-            users u_commenter ON ch."userId" = u_commenter.id
-        LEFT JOIN
-            comments r ON c.id = r."parentCommentId"
-        WHERE
-            c."videoId" = $1 AND c."parentCommentId" IS NULL
-        GROUP BY
-            c.id, ch.id, u_commenter.id
-        ORDER BY
-            c."createdAt" DESC
-        LIMIT $2 OFFSET $3;
-        `,
+				SELECT
+					c.id AS "commentId",
+					c."videoId" AS "commentVideoId",
+					c.text AS "commentText",
+					c."createdAt" AS "commentCreatedAt",
+					c."parentCommentId" AS "parentCommentId",
+					(SELECT COUNT(*) FROM comments WHERE "parentCommentId" = c.id) AS "repliesCount",
+					ch.id AS "channelId",
+					ch.name AS "channelName",
+					ch.description AS "channelDescription",
+					ch."avatarUrl" AS "channelAvatarUrl",
+					ch."userId" AS "commenterUserId",
+					ch.name AS "commenterUsername",
+					ch."avatarUrl" AS "commenterAvatarUrl"
+				FROM
+					comments c
+				JOIN
+					channels ch ON c."channelId" = ch.id
+				WHERE
+					c."parentCommentId" IS NULL AND c."videoId" = $1
+				ORDER BY
+					c."createdAt" DESC
+				LIMIT $2 OFFSET $3;
+  		`,
 			[videoId, parsedLimit, offset]
 		);
 
@@ -122,15 +116,13 @@ class CommentController {
 					ch.name AS "channelName",
 					ch.description AS "channelDescription",
 					ch."avatarUrl" AS "channelAvatarUrl",
-					u_commenter.id AS "commenterUserId",
-					u_commenter.username AS "commenterUsername",
-					u_commenter."avatarUrl" AS "commenterAvatarUrl"
+					ch."userId" AS "commenterUserId",
+					ch.name AS "commenterUsername",
+					ch."avatarUrl" AS "commenterAvatarUrl"
 				FROM
 					comments c
 				JOIN
 					channels ch ON c."channelId" = ch.id
-				JOIN
-					users u_commenter ON ch."userId" = u_commenter.id
 				WHERE
 					c."parentCommentId" = $1
 				ORDER BY
