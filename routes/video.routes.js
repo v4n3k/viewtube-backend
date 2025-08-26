@@ -17,3 +17,5 @@ router.post('/channels/:channelId/videos/:videoId/like', handleError(VideoContro
 router.delete('/channels/:channelId/videos/:videoId/unlike', handleError(VideoController.unlikeVideo));
 router.post('/channels/:channelId/videos/:videoId/dislike', handleError(VideoController.dislikeVideo));
 router.delete('/channels/:channelId/videos/:videoId/undislike', handleError(VideoController.undislikeVideo));
+router.post('/channels/:channelId/videos/:videoId/history', handleError(VideoController.addVideoToHistory));
+router.delete('/channels/:channelId/videos/:videoId/history', handleError(VideoController.deleteVideoFromHistory));

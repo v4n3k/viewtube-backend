@@ -223,21 +223,74 @@ class VideoController {
 		});
 	}
 
-
 	async getHistoryVideosByChannelId(req, res) {
 		const { channelId } = req.params;
+		const { page, limit } = req.query;
+
+		const parsedPage = parseInt(page, 10);
+		const parsedLimit = parseInt(limit, 10);
+
+		if (isNaN(parsedPage) || isNaN(parsedLimit) || parsedPage <= 0 || parsedLimit <= 0) {
+			return res.status(400).json({ error: 'Page and limit must be positive numbers' });
+		}
 
 		if (!channelId) {
 			return res.status(400).json({ error: 'Channel ID is required' });
 		}
 
-		const historyVideosResult = await db.query(
-			'SELECT * FROM "watchHistory." WHERE "channelId" = $1',
+		const offset = (parsedPage - 1) * parsedLimit;
+
+		const countResult = await db.query(
+			'SELECT COUNT(*) FROM "watchHistory" WHERE "channelId" = $1',
 			[channelId]
+		);
+
+		const totalItems = parseInt(countResult.rows[0].count, 10);
+		const totalPages = Math.ceil(totalItems / parsedLimit);
+
+		if (totalItems === 0 || (parsedPage > totalPages && totalPages > 0)) {
+			return res.json({
+				historyVideos: [],
+				currentPage: totalItems === 0 ? 1 : totalPages,
+				totalPages: totalItems === 0 ? 0 : totalPages,
+				totalItems: totalItems,
+			});
+		}
+
+		const historyVideosResult = await db.query(
+			`SELECT
+        v.id,
+        v.title,
+        v.description,
+        v."previewUrl",
+        v.duration,
+        v.views,
+        v.visibility,
+        c.id AS "channelId",
+        c.name AS "channelName",
+        c."avatarUrl" AS "channelAvatar",
+        wh."watchedAt"
+			FROM
+				"watchHistory" wh
+			JOIN
+				videos v ON wh."videoId" = v.id
+			JOIN
+				channels c ON v."channelId" = c.id
+			WHERE
+				wh."channelId" = $1
+			ORDER BY
+				wh."watchedAt" DESC 
+			LIMIT $2 OFFSET $3`,
+			[channelId, parsedLimit, offset]
 		);
 		const historyVideos = historyVideosResult.rows;
 
-		res.json(historyVideos);
+		res.json({
+			historyVideos,
+			currentPage: parsedPage,
+			totalPages,
+			totalItems,
+		});
 	}
 
 	async getLikedVideosByChannelId(req, res) {
@@ -433,6 +486,50 @@ class VideoController {
 		);
 
 		res.json({ message: 'Video removed from watch later successfully' });
+	}
+
+	async addVideoToHistory(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!channelId || !videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const isVideoInHistory = await db.query(
+			`SELECT * FROM "watchHistory" WHERE "channelId" = $1 AND "videoId" = $2`,
+			[channelId, videoId]
+		);
+		if (isVideoInHistory.rows.length > 0) {
+			return res.status(400).json({ error: 'Video already in history' });
+		}
+
+		const historyVideoResult = await db.query(
+			`INSERT INTO "watchHistory" ("channelId", "videoId")
+				VALUES ($1, $2)
+			RETURNING *`,
+			[channelId, videoId]
+		);
+		const historyVideo = historyVideoResult.rows[0];
+
+		res.json(historyVideo);
+	}
+
+	async deleteVideoFromHistory(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!channelId || !videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const historyVideoResult = await db.query(
+			`DELETE FROM "watchHistory" 
+				WHERE "channelId" = $1 AND "videoId" = $2
+			RETURNING *`,
+			[channelId, videoId]
+		);
+		const historyVideo = historyVideoResult.rows[0];
+
+		res.json(historyVideo);
 	}
 }
 
