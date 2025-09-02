@@ -1,4 +1,7 @@
 import { db } from '../db.js';
+import { v4 as uuidv4 } from 'uuid';
+import { env } from '../utils/utils.js';
+import { s3 } from '../config/s3.js';
 
 class VideoController {
 	async getRecommendedVideos(req, res) {
@@ -530,6 +533,66 @@ class VideoController {
 		const historyVideo = historyVideoResult.rows[0];
 
 		res.json(historyVideo);
+	}
+
+	async uploadVideo(req, res) {
+		const { channelId } = req.params;
+		const { title, description } = req.body;
+		const videoFile = req.files?.videoFile?.[0];
+		const previewFile = req.files?.previewFile?.[0];
+
+		if (!channelId) {
+			return res.status(400).json({ error: 'Channel ID is required' });
+		}
+
+		if (!videoFile) {
+			return res.status(400).json({ error: 'Video file is required' });
+		}
+
+		if (!previewFile) {
+			return res.status(400).json({ error: 'Preview file is required' });
+		}
+
+		if (!title) {
+			return res.status(400).json({ error: 'Title is required' });
+		}
+
+		if (!description) {
+			return res.status(400).json({ error: 'Description is required' });
+		}
+
+		const videoKey = `videos/${channelId}/${uuidv4()}-${videoFile.originalname}`;
+		const previewKey = `previews/${channelId}/${uuidv4()}-${previewFile.originalname}`;
+
+		const videoUploadParams = {
+			Bucket: env('S3_BUCKET_NAME'),
+			Key: videoKey,
+			Body: videoFile.buffer,
+			ContentType: videoFile.mimetype,
+		};
+		const videoUploadResult = await s3.upload(videoUploadParams).promise();
+		const videoUrl = videoUploadResult.Location;
+
+		const previewUploadParams = {
+			Bucket: env('S3_BUCKET_NAME'),
+			Key: previewKey,
+			Body: previewFile.buffer,
+			ContentType: previewFile.mimetype,
+
+		};
+		const previewUploadResult = await s3.upload(previewUploadParams).promise();
+		const previewUrl = previewUploadResult.Location;
+
+		const videoResult = await db.query(
+			`INSERT INTO videos (title, description, "videoUrl", "previewUrl", "channelId", "createdAt")
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       RETURNING *`,
+			[title, description, videoUrl, previewUrl, channelId]
+		);
+
+		const video = videoResult.rows[0];
+
+		res.status(201).json(video);
 	}
 }
 
