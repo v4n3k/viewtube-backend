@@ -1,7 +1,25 @@
-import { db } from '../db.js';
+import ffmpeg from 'fluent-ffmpeg';
+import fs from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
-import { env } from '../utils/utils.js';
 import { s3 } from '../config/s3.js';
+import { db } from '../db.js';
+import { env } from '../utils/utils.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+async function getVideoDuration(filePath) {
+	return new Promise((resolve, reject) => {
+		ffmpeg.ffprobe(filePath, (err, metadata) => {
+			if (err) return reject(err);
+
+			const duration = metadata.format.duration;
+			resolve(Math.floor(duration));
+		});
+	});
+}
 
 class VideoController {
 	async getRecommendedVideos(req, res) {
@@ -561,6 +579,36 @@ class VideoController {
 			return res.status(400).json({ error: 'Description is required' });
 		}
 
+		const tempDir = join(__dirname, '..', 'temp');
+		if (!fs.existsSync(tempDir)) {
+			fs.mkdirSync(tempDir, { recursive: true });
+		}
+
+		const tempVideoPath = join(tempDir, `${uuidv4()}-${videoFile.originalname}`);
+
+		try {
+			fs.writeFileSync(tempVideoPath, videoFile.buffer);
+		} catch (writeErr) {
+			console.error('Error writing temp file:', writeErr);
+			return res.status(500).json({ error: 'Failed to write temporary file' });
+		}
+
+		let duration;
+		try {
+			duration = await getVideoDuration(tempVideoPath);
+		} catch (err) {
+			console.error('Error getting video duration:', err);
+
+			if (fs.existsSync(tempVideoPath)) {
+				fs.unlinkSync(tempVideoPath);
+			}
+			return res.status(500).json({ error: 'Failed to process video file' });
+		} finally {
+			if (fs.existsSync(tempVideoPath)) {
+				fs.unlinkSync(tempVideoPath);
+			}
+		}
+
 		const videoKey = `videos/${channelId}/${uuidv4()}-${videoFile.originalname}`;
 		const previewKey = `previews/${channelId}/${uuidv4()}-${previewFile.originalname}`;
 
@@ -578,16 +626,15 @@ class VideoController {
 			Key: previewKey,
 			Body: previewFile.buffer,
 			ContentType: previewFile.mimetype,
-
 		};
 		const previewUploadResult = await s3.upload(previewUploadParams).promise();
 		const previewUrl = previewUploadResult.Location;
 
 		const videoResult = await db.query(
-			`INSERT INTO videos (title, description, "videoUrl", "previewUrl", "channelId", "createdAt")
-       VALUES ($1, $2, $3, $4, $5, NOW())
-       RETURNING *`,
-			[title, description, videoUrl, previewUrl, channelId]
+			`INSERT INTO videos (title, description, "videoUrl", "previewUrl", "channelId", "duration", "createdAt")
+     VALUES ($1, $2, $3, $4, $5, $6, NOW())
+     RETURNING *`,
+			[title, description, videoUrl, previewUrl, channelId, duration]
 		);
 
 		const video = videoResult.rows[0];

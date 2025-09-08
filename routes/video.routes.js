@@ -12,7 +12,6 @@ const upload = multer({
 	}
 });
 
-
 router.get('/videos', handleError(VideoController.getRecommendedVideos));
 router.get('/channels/:channelId/videos/:videoId', handleError(VideoController.getVideoById));
 router.get('/channels/:channelId/videos', handleError(VideoController.getVideosByChannelId));
