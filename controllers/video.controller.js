@@ -158,20 +158,74 @@ class VideoController {
 		res.json(response);
 	}
 
+
 	async getVideosByChannelId(req, res) {
 		const { channelId } = req.params;
+		const { page, limit } = req.query;
+
+		const parsedPage = parseInt(page, 10);
+		const parsedLimit = parseInt(limit, 10);
+
+		if (isNaN(parsedPage) || isNaN(parsedLimit) || parsedPage <= 0 || parsedLimit <= 0) {
+			return res.status(400).json({ error: 'Page and limit must be positive numbers' });
+		}
 
 		if (!channelId) {
 			return res.status(400).json({ error: 'Channel ID is required' });
 		}
 
-		const videosResult = await db.query(
-			'SELECT * FROM videos WHERE "channelId" = $1',
+		const offset = (parsedPage - 1) * parsedLimit;
+
+		const countResult = await db.query(
+			'SELECT COUNT(*) FROM videos WHERE "channelId" = $1',
 			[channelId]
 		);
-		const videos = videosResult.rows;
 
-		res.json(videos);
+		const totalItems = parseInt(countResult.rows[0].count, 10);
+		const totalPages = Math.ceil(totalItems / parsedLimit);
+
+		if (totalItems === 0 || (parsedPage > totalPages && totalPages > 0)) {
+			return res.json({
+				videos: [],
+				currentPage: totalItems === 0 ? 1 : totalPages,
+				totalPages: totalItems === 0 ? 0 : totalPages,
+				totalItems: totalItems,
+			});
+		}
+
+		const channelVideosResult = await db.query(
+			`SELECT
+        v.id,
+        v.title,
+        v.description,
+        v."previewUrl",
+        v.duration,
+        v.views,
+        v.visibility,
+        v."createdAt",
+        c.id AS "channelId",
+        c.name AS "channelName",
+        c."avatarUrl" AS "channelAvatar"
+    	FROM
+        videos v
+      JOIN
+        channels c ON v."channelId" = c.id
+      WHERE
+        v."channelId" = $1
+      ORDER BY
+        v."createdAt" DESC 
+      LIMIT $2 OFFSET $3`,
+			[channelId, parsedLimit, offset]
+		);
+
+		const channelVideos = channelVideosResult.rows;
+
+		res.json({
+			channelVideos,
+			currentPage: parsedPage,
+			totalPages,
+			totalItems,
+		});
 	}
 
 	async getWatchLaterVideosByChannelId(req, res) {

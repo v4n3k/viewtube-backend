@@ -40,12 +40,11 @@ class ChannelController {
 
 	async createChannel(req, res) {
 		const { userId, name, description } = req.body;
-		console.log(req.body);
 		const avatarFile = req.files?.avatarFile?.[0];
 		const bannerFile = req.files?.bannerFile?.[0];
 
 		if (!userId || !name || !description || !avatarFile || !bannerFile) {
-			return res.status(400).json({ error: 'Missing required fields', fields: [userId, name, description] });
+			return res.status(400).json({ error: 'Missing required fields' });
 		}
 
 		const avatarKey = `avatars/${userId}/${uuidv4()}-${avatarFile.originalname}`;
