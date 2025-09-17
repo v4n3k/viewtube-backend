@@ -18,7 +18,7 @@ router.get('/channels/:channelId/videos', handleError(VideoController.getVideosB
 router.get('/channels/:channelId/watchLater', handleError(VideoController.getWatchLaterVideosByChannelId));
 router.get('/channels/:channelId/history', handleError(VideoController.getHistoryVideosByChannelId));
 router.get('/channels/:channelId/liked', handleError(VideoController.getLikedVideosByChannelId));
-router.get('/channels/:channelId/subscribed', handleError(VideoController.getSubscribedVideosByChannelIds));
+router.get('/channels/:channelId/subscribed', handleError(VideoController.getSubscriptionVideos));
 router.post('/channels/:channelId/videos/:videoId/watchLater', handleError(VideoController.addToWatchLater));
 router.delete('/channels/:channelId/videos/:videoId/watchLater', handleError(VideoController.deleteFromWatchLater));
 router.post('/channels/:channelId/videos/:videoId/like', handleError(VideoController.likeVideo));

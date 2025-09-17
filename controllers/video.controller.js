@@ -195,26 +195,17 @@ class VideoController {
 
 		const channelVideosResult = await db.query(
 			`SELECT
-        v.id,
-        v.title,
-        v.description,
-        v."previewUrl",
-        v.duration,
-        v.views,
-        v.visibility,
-        v."createdAt",
-        c.id AS "channelId",
-        c.name AS "channelName",
-        c."avatarUrl" AS "channelAvatar"
-    	FROM
-        videos v
-      JOIN
-        channels c ON v."channelId" = c.id
-      WHERE
-        v."channelId" = $1
-      ORDER BY
-        v."createdAt" DESC 
-      LIMIT $2 OFFSET $3`,
+    		id,
+				title,
+				description,
+				"previewUrl",
+				duration,
+				views,
+				"createdAt"
+			FROM videos
+			WHERE "channelId" = $1
+			ORDER BY "createdAt" DESC 
+			LIMIT $2 OFFSET $3`,
 			[channelId, parsedLimit, offset]
 		);
 
@@ -368,6 +359,80 @@ class VideoController {
 		});
 	}
 
+	async getSubscriptionVideos(req, res) {
+		const { channelId } = req.params;
+		const { page, limit } = req.query;
+
+		const parsedPage = parseInt(page, 10);
+		const parsedLimit = parseInt(limit, 10);
+
+		if (isNaN(parsedPage) || isNaN(parsedLimit) || parsedPage <= 0 || parsedLimit <= 0) {
+			return res.status(400).json({ error: 'Page and limit must be positive numbers' });
+		}
+
+		if (!channelId) {
+			return res.status(400).json({ error: 'Channel ID is required' });
+		}
+
+		const offset = (parsedPage - 1) * parsedLimit;
+
+		const countResult = await db.query(
+			`SELECT COUNT(*) 
+         FROM videos v
+         JOIN subscriptions s ON v."channelId" = s."subscribedToChannelId"
+         WHERE s."subscriberChannelId" = $1`,
+			[channelId]
+		);
+
+		const totalItems = parseInt(countResult.rows[0].count, 10);
+		const totalPages = Math.ceil(totalItems / parsedLimit);
+
+		if (totalItems === 0 || (parsedPage > totalPages && totalPages > 0)) {
+			return res.json({
+				subscriptionVideos: [],
+				currentPage: totalItems === 0 ? 1 : totalPages,
+				totalPages: totalItems === 0 ? 0 : totalPages,
+				totalItems: totalItems,
+			});
+		}
+
+		const subscriptionVideosResult = await db.query(
+			`SELECT
+        v.id,
+        v.title,
+        v.description,
+        v."previewUrl",
+        v.duration,
+        v.views,
+        v.visibility,
+        c.id AS "channelId",
+        c.name AS "channelName",
+        c."avatarUrl" AS "channelAvatar",
+        v."createdAt" AS "publishedAt"
+      FROM
+        videos v
+    	JOIN
+        subscriptions s ON v."channelId" = s."subscribedToChannelId"
+      JOIN
+        channels c ON v."channelId" = c.id
+      WHERE
+        s."subscriberChannelId" = $1
+      ORDER BY
+        v."createdAt" DESC 
+      LIMIT $2 OFFSET $3`,
+			[channelId, parsedLimit, offset]
+		);
+
+		const subscriptionVideos = subscriptionVideosResult.rows;
+
+		res.json({
+			subscriptionVideos,
+			currentPage: parsedPage,
+			totalPages,
+			totalItems,
+		});
+	}
+
 	async getLikedVideosByChannelId(req, res) {
 		const { channelId } = req.params;
 		const { page, limit } = req.query;
@@ -436,23 +501,6 @@ class VideoController {
 			totalPages,
 			totalItems,
 		});
-	}
-
-	async getSubscribedVideosByChannelIds(req, res) {
-		const { channelIds } = req.params;
-
-		if (!channelIds.length) {
-			return res.status(400).json({ error: 'Channel IDs are required' });
-		}
-
-		const subscribedVideosResult = await db.query(
-			`SELECT * FROM "subscriptions"
-			 	WHERE "channelId" = ANY($1)`,
-			[channelIds]
-		);
-		const subscribedVideos = subscribedVideosResult.rows;
-
-		res.json(subscribedVideos);
 	}
 
 	async likeVideo(req, res) {
