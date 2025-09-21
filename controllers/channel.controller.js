@@ -38,6 +38,30 @@ class ChannelController {
 		res.json(channel);
 	}
 
+	async getChannelsByUserId(req, res) {
+		const { userId } = req.params;
+
+		if (!userId || isNaN(userId)) {
+			return res.status(400).json({ error: 'Missing required fields' });
+		}
+
+		const channelsResult = await db.query(
+			`SELECT
+				c.*,
+				(SELECT COUNT(*) FROM subscriptions WHERE "subscribedToChannelId" = c.id) AS "subscribersCount",
+				(SELECT COUNT(*) FROM videos WHERE "channelId" = c.id) AS "videosCount"
+			FROM
+				channels c
+			WHERE
+				c."userId" = $1
+			ORDER BY
+				c."createdAt" DESC;`,
+			[userId]
+		);
+
+		res.json(channelsResult.rows);
+	}
+
 	async createChannel(req, res) {
 		const { userId, name, description } = req.body;
 		const avatarFile = req.files?.avatarFile?.[0];

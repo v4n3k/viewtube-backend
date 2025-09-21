@@ -186,7 +186,7 @@ class VideoController {
 
 		if (totalItems === 0 || (parsedPage > totalPages && totalPages > 0)) {
 			return res.json({
-				videos: [],
+				channelVideos: [],
 				currentPage: totalItems === 0 ? 1 : totalPages,
 				totalPages: totalItems === 0 ? 0 : totalPages,
 				totalItems: totalItems,
@@ -195,16 +195,19 @@ class VideoController {
 
 		const channelVideosResult = await db.query(
 			`SELECT
-    		id,
-				title,
-				description,
-				"previewUrl",
-				duration,
-				views,
-				"createdAt"
-			FROM videos
-			WHERE "channelId" = $1
-			ORDER BY "createdAt" DESC 
+				v.id,
+				v.title,
+				v.description,
+				v."previewUrl",
+				v.duration,
+				v.views,
+				v."createdAt",
+				COUNT(c.id) as "commentsCount"
+			FROM videos v
+			LEFT JOIN comments c ON v.id = c."videoId"
+			WHERE v."channelId" = $1
+			GROUP BY v.id, v.title, v.description, v."previewUrl", v.duration, v.views, v."createdAt"
+			ORDER BY v."createdAt" DESC 
 			LIMIT $2 OFFSET $3`,
 			[channelId, parsedLimit, offset]
 		);

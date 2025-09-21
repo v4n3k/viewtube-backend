@@ -13,6 +13,7 @@ const upload = multer({
 });
 
 router.get('/channels/:requestedChannelId/by/:requesterChannelId', handleError(ChannelController.getChannelById));
+router.get(`/users/:userId/channels`, handleError(ChannelController.getChannelsByUserId));
 router.post(
 	'/channels',
 	upload.fields([
