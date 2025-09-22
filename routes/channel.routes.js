@@ -22,3 +22,4 @@ router.post(
 	]),
 	handleError(ChannelController.createChannel)
 );
+router.delete('/channels/:channelId', handleError(ChannelController.deleteChannel));

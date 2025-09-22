@@ -55,11 +55,13 @@ class ChannelController {
 			WHERE
 				c."userId" = $1
 			ORDER BY
-				c."createdAt" DESC;`,
+				c."createdAt" DESC`,
 			[userId]
 		);
 
-		res.json(channelsResult.rows);
+		const channels = channelsResult.rows;
+
+		res.json(channels);
 	}
 
 	async createChannel(req, res) {
@@ -106,6 +108,23 @@ class ChannelController {
 		const newChannel = channelResult.rows[0];
 
 		res.status(201).json(newChannel);
+	}
+
+	async deleteChannel(req, res) {
+		const { channelId } = req.params;
+
+		if (!channelId || isNaN(channelId)) {
+			return res.status(400).json({ error: 'Missing required fields' });
+		}
+
+		const channelResult = await db.query(
+			`DELETE FROM channels WHERE id = $1 RETURNING *`,
+			[channelId]
+		);
+
+		const deletedChannel = channelResult.rows[0];
+
+		res.json(deletedChannel);
 	}
 }
 
