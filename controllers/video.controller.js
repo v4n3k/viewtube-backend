@@ -746,6 +746,28 @@ class VideoController {
 
 		res.status(201).json(video);
 	}
+
+	async deleteVideo(req, res) {
+		const { videoId } = req.params;
+
+		if (!videoId) {
+			return res.status(400).json({ error: 'Channel ID and video ID are required' });
+		}
+
+		const videoResult = await db.query(
+			`DELETE FROM videos 
+				WHERE id = $1
+			RETURNING *`,
+			[videoId]
+		);
+		const video = videoResult.rows[0];
+
+		if (!video) {
+			return res.status(404).json({ error: 'Video not found' });
+		}
+
+		res.json(video);
+	}
 }
 
 export default new VideoController();

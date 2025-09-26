@@ -35,4 +35,4 @@ router.post(
 	]),
 	handleError(VideoController.uploadVideo)
 );
-
+router.delete('/videos/:videoId', handleError(VideoController.deleteVideo));
