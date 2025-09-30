@@ -64,6 +64,12 @@ class AuthController {
 		);
 		const user = userResult.rows[0];
 
+		const channelIdResult = await db.query(
+			'SELECT MIN(id) FROM channels WHERE "userId" = $1',
+			[user.id]
+		);
+		const channelId = channelIdResult.rows[0].min;
+
 		if (!user) {
 			return res.status(401).json(userDoesNotExistError);
 		}
@@ -85,7 +91,7 @@ class AuthController {
 			maxAge: 60 * 60 * 1000 * 24 * 7, // 7 days
 		});
 
-		res.json({ message: 'Sign in successful', userId: user.id, login });
+		res.json({ message: 'Sign in successful', userId: user.id, channelId, login });
 	}
 
 	async signOut(req, res) {

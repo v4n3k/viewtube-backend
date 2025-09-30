@@ -27,6 +27,7 @@ router.post('/channels/:channelId/videos/:videoId/dislike', handleError(VideoCon
 router.delete('/channels/:channelId/videos/:videoId/undislike', handleError(VideoController.undislikeVideo));
 router.post('/channels/:channelId/videos/:videoId/history', handleError(VideoController.addVideoToHistory));
 router.delete('/channels/:channelId/videos/:videoId/history', handleError(VideoController.deleteVideoFromHistory));
+router.patch('/channels/:channelId/videos/:videoId/visibility', handleError(VideoController.toggleVisibility));
 router.post(
 	'/channels/:channelId/videos/upload',
 	upload.fields([

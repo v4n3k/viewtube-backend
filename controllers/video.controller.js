@@ -201,6 +201,7 @@ class VideoController {
 				v."previewUrl",
 				v.duration,
 				v.views,
+				v.visibility,
 				v."createdAt",
 				COUNT(c.id) as "commentsCount"
 			FROM videos v
@@ -657,6 +658,42 @@ class VideoController {
 
 		res.json(historyVideo);
 	}
+
+	async toggleVisibility(req, res) {
+		const { channelId, videoId } = req.params;
+
+		if (!videoId) {
+			return res.status(400).json({ error: 'Video ID is required' });
+		}
+		if (!channelId) {
+			return res.status(400).json({ error: 'Channel ID is required' });
+		}
+
+		const result = await db.query(
+			`
+        UPDATE videos 
+        SET visibility = CASE 
+          WHEN visibility = 'public' THEN 'private' 
+          ELSE 'public' 
+        END
+        WHERE id = $1 
+          AND "channelId" = $2 
+        RETURNING *
+      `,
+			[videoId, channelId]
+		);
+
+		const updatedVideo = result.rows[0];
+
+		if (!updatedVideo) {
+			return res.status(404).json({
+				error: 'Video not found or does not belong to the specified channel'
+			});
+		}
+
+		res.json(updatedVideo);
+	}
+
 
 	async uploadVideo(req, res) {
 		const { channelId } = req.params;
