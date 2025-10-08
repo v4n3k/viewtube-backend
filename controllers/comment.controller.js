@@ -1,4 +1,5 @@
 import { db } from '../db.js';
+import { validateAuthToken, validateChannelId } from '../utils/utils.js';
 
 class CommentController {
 	async getCommentsByVideoId(req, res) {
@@ -160,9 +161,12 @@ class CommentController {
 	async createComment(req, res) {
 		const { channelId, videoId, text, parentCommentId } = req.body;
 
-		if (!videoId || !text) {
+		if (!channelId || !videoId || !parentCommentId || !text) {
 			return res.status(400).json({ error: 'Missing required fields' });
 		}
+
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
 
 		const comment = await db.query(
 			`INSERT INTO comments 

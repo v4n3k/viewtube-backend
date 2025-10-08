@@ -1,4 +1,5 @@
 import { db } from '../db.js';
+import { validateAuthToken, validateChannelId } from '../utils/utils.js';
 
 class SubscriptionController {
 	async createSubscription(req, res) {
@@ -11,6 +12,9 @@ class SubscriptionController {
 		if (parseInt(subscriberChannelId) === parseInt(subscribeToChannelId)) {
 			return res.status(400).json({ error: 'You cannot subscribe to yourself' });
 		}
+
+		validateAuthToken(req);
+		await validateChannelId(req, subscriberChannelId);
 
 		const subscriptionResult = await db.query(
 			`INSERT INTO subscriptions 
@@ -34,6 +38,9 @@ class SubscriptionController {
 		if (parseInt(subscriberChannelId) === parseInt(unsubscribeFromChannelId)) {
 			return res.status(400).json({ error: 'You cannot unsubscribe from yourself' });
 		}
+
+		validateAuthToken(req);
+		await validateChannelId(req, subscriberChannelId);
 
 		const subscriptionResult = await db.query(
 			`DELETE FROM subscriptions 

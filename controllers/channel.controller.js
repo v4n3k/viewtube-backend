@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { s3 } from '../config/s3.js';
 import { db } from '../db.js';
-import { env } from '../utils/utils.js';
+import { env, validateAuthToken, validateChannelId } from '../utils/utils.js';
 
 class ChannelController {
 	async getChannelById(req, res) {
@@ -116,6 +116,9 @@ class ChannelController {
 		if (!channelId || isNaN(channelId)) {
 			return res.status(400).json({ error: 'Missing required fields' });
 		}
+
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
 
 		const channelResult = await db.query(
 			`DELETE FROM channels WHERE id = $1 RETURNING *`,

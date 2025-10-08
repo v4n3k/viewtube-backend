@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import { s3 } from '../config/s3.js';
 import { db } from '../db.js';
-import { env } from '../utils/utils.js';
+import { env, validateAuthToken, validateChannelId } from '../utils/utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -514,6 +514,9 @@ class VideoController {
 			return res.status(400).json({ error: 'Channel ID and video ID are required' });
 		}
 
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
+
 		const reactionResult = await db.query(
 			`INSERT INTO "videoReactions" ("channelId", "videoId", "reactionType")
 				VALUES ($1, $2, 'like')
@@ -533,6 +536,9 @@ class VideoController {
 			return res.status(400).json({ error: 'Channel ID and video ID are required' });
 		}
 
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
+
 		const reactionResult = await db.query(
 			`DELETE FROM "videoReactions" 
 				WHERE "channelId" = $1 AND "videoId" = $2
@@ -549,6 +555,9 @@ class VideoController {
 		if (!channelId || !videoId) {
 			return res.status(400).json({ error: 'Channel ID and video ID are required' });
 		}
+
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
 
 		const reactionResult = await db.query(
 			`INSERT INTO "videoReactions" ("channelId", "videoId", "reactionType")
@@ -569,6 +578,9 @@ class VideoController {
 			return res.status(400).json({ error: 'Channel ID and video ID are required' });
 		}
 
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
+
 		const reactionResult = await db.query(
 			`DELETE FROM "videoReactions" 
 				WHERE "channelId" = $1 AND "videoId" = $2
@@ -585,6 +597,9 @@ class VideoController {
 		if (!channelId || !videoId) {
 			return res.status(400).json({ error: 'Channel ID and video ID are required' });
 		}
+
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
 
 		const watchLaterVideoResult = await db.query(
 			`INSERT INTO "watchLater" ("channelId", "videoId")
@@ -605,6 +620,9 @@ class VideoController {
 			return res.status(400).json({ error: 'Channel ID and video ID are required' });
 		}
 
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
+
 		const watchLaterVideoResult = await db.query(
 			`DELETE FROM "watchLater" 
 				WHERE "channelId" = $1 AND "videoId" = $2
@@ -621,6 +639,9 @@ class VideoController {
 		if (!channelId || !videoId) {
 			return res.status(400).json({ error: 'Channel ID and video ID are required' });
 		}
+
+		validateAuthToken(req);
+		await validateChannelId(req, channelId);
 
 		const isVideoInHistory = await db.query(
 			`SELECT * FROM "watchHistory" WHERE "channelId" = $1 AND "videoId" = $2`,
@@ -693,7 +714,6 @@ class VideoController {
 
 		res.json(updatedVideo);
 	}
-
 
 	async uploadVideo(req, res) {
 		const { channelId } = req.params;

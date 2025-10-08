@@ -80,7 +80,7 @@ class AuthController {
 			return res.status(401).json(wrongPasswordError);
 		}
 
-		const token = jwt.sign({ id: user.id, login: user.login }, JWT_SECRET, {
+		const token = jwt.sign({ userId: user.id, login: user.login }, JWT_SECRET, {
 			expiresIn: '7d',
 		});
 
