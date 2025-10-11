@@ -110,6 +110,29 @@ class ChannelController {
 		res.status(201).json(newChannel);
 	}
 
+	async selectChannel(req, res) {
+		const { channelId } = req.params;
+
+		if (!channelId) {
+			return res.status(400).json({ error: 'Missing required channelId' });
+		}
+
+		const parsedChannelId = Number(channelId);
+		if (!Number.isInteger(parsedChannelId) || parsedChannelId <= 0) {
+			return res.status(400).json({ error: 'channelId must be a positive integer' });
+		}
+
+		validateAuthToken(req);
+		await validateChannelId(req, parsedChannelId);
+
+		const channelResult = await db.query(
+			'SELECT * FROM channels WHERE id = $1',
+			[parsedChannelId]
+		);
+
+		res.json(channelResult.rows[0]);
+	}
+
 	async deleteChannel(req, res) {
 		const { channelId } = req.params;
 
