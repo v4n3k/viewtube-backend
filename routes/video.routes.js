@@ -36,4 +36,5 @@ router.post(
 	]),
 	handleError(VideoController.uploadVideo)
 );
+router.get('/videos/:videoId/likes-stats', handleError(VideoController.getLikesStats));
 router.delete('/videos/:videoId', handleError(VideoController.deleteVideo));
