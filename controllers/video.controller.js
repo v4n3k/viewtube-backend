@@ -804,12 +804,16 @@ class VideoController {
 		res.status(201).json(video);
 	}
 
-	async getLikesStats(req, res) {
+	async getVideoStats(req, res) {
 		const { videoId } = req.params;
-		const { startDate, endDate } = req.query;
+		const { startDate, endDate, metricType } = req.query;
 
 		if (!videoId) {
 			return res.status(400).json({ error: 'Video ID is required' });
+		}
+
+		if (!metricType || !['like', 'dislike', 'view'].includes(metricType)) {
+			return res.status(400).json({ error: 'Invalid or missing "type". Must be one of: like, dislike, view' });
 		}
 
 		let start = startDate ? new Date(startDate) : null;
@@ -828,36 +832,60 @@ class VideoController {
 		const endInclusive = new Date(end);
 		endInclusive.setDate(endInclusive.getDate() + 1);
 
-		const query = `
-			WITH date_series AS (
-				SELECT generate_series(
-					$2::date,
-					$3::date - interval '1 day',
-					'1 day'::interval
-				)::date AS date
-			)
-			SELECT
-				ds.date,
-				COALESCE(COUNT(vr."videoId"), 0) AS likes
-			FROM date_series ds
-			LEFT JOIN "videoReactions" vr
-				ON vr."videoId" = $1
-				AND vr."reactionType" = 'like'
-				AND vr."createdAt" >= $2::timestamp
-				AND vr."createdAt" < $3::timestamp
-				AND DATE(vr."createdAt") = ds.date
-			GROUP BY ds.date
-			ORDER BY ds.date ASC;
-	`;
+		let query, params;
 
-		const params = [videoId, start, endInclusive];
-
+		if (metricType === 'view') {
+			query = `
+      WITH date_series AS (
+        SELECT generate_series(
+          $2::date,
+          $3::date - interval '1 day',
+          '1 day'::interval
+        )::date AS day
+      )
+      SELECT
+        ds.day,
+        COALESCE(COUNT(wh."videoId"), 0) AS value
+      FROM date_series ds
+      LEFT JOIN "watchHistory" wh
+        ON wh."videoId" = $1
+        AND wh."watchedAt" >= $2::timestamp
+        AND wh."watchedAt" < $3::timestamp
+        AND DATE(wh."watchedAt") = ds.day
+      GROUP BY ds.day
+      ORDER BY ds.day ASC;
+    `;
+			params = [videoId, start, endInclusive];
+		} else {
+			query = `
+      WITH date_series AS (
+        SELECT generate_series(
+          $2::date,
+          $3::date - interval '1 day',
+          '1 day'::interval
+        )::date AS day
+      )
+      SELECT
+        ds.day,
+        COALESCE(COUNT(vr."videoId"), 0) AS value
+      FROM date_series ds
+      LEFT JOIN "videoReactions" vr
+        ON vr."videoId" = $1
+        AND vr."reactionType" = $4
+        AND vr."createdAt" >= $2::timestamp
+        AND vr."createdAt" < $3::timestamp
+        AND DATE(vr."createdAt") = ds.day
+      GROUP BY ds.day
+      ORDER BY ds.day ASC;
+    `;
+			params = [videoId, start, endInclusive, metricType];
+		}
 
 		const result = await db.query(query, params);
 
 		const stats = result.rows.map(row => ({
-			timestamp: row.date.toISOString().split('T')[0],
-			value: parseInt(row.likes, 10)
+			timestamp: row.day.toISOString().split('T')[0],
+			value: parseInt(row.value, 10),
 		}));
 
 		res.json(stats);

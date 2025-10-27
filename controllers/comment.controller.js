@@ -161,7 +161,7 @@ class CommentController {
 	async createComment(req, res) {
 		const { channelId, videoId, text, parentCommentId } = req.body;
 
-		if (!channelId || !videoId || !parentCommentId || !text) {
+		if (!channelId || !videoId || !text) {
 			return res.status(400).json({ error: 'Missing required fields' });
 		}
 
